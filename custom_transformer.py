@@ -92,6 +92,7 @@ class FMoETransformerMLP(FMoE):
             out = out.reshape(N, self.mhmoe_num_heads, dim // self.mhmoe_num_heads).contiguous()
             out = out.reshape(N, self.hidden_size).contiguous()
             out = self.merge_layer(out)
+            out = out.reshape(original_shape)
         else:
             out = super().forward(reshaped_inp)
             out = out.reshape(original_shape)
