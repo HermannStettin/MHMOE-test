@@ -121,7 +121,7 @@ PARAMS_CONFIG = {
             "type": float,
             "default": 1.0,
             "help": "Step size (gamma) for MomentumSMoE update.",
-            "dest": "momentum_gamma",
+            "dest": "gamma2",
         },
         "--beta1": { # MomentumSMoE Adam beta1
             "type": float,
