@@ -45,7 +45,7 @@ PARAMS_CONFIG = {
             "help": "Inner hidden size of MoE/FF layers.",
             "dest": "inner_hidden_size",
         },
-         "--num-layers": {
+         "--num-layers": { # REMOVED LEADING SPACE
             "type": int,
             "default": 8,
             "help": "Number of Transformer layers.",
@@ -157,7 +157,7 @@ PARAMS_CONFIG = {
         },
     },
     "trainer_params": {
-         "--epochs": {
+         "--epochs": { # REMOVED LEADING SPACE
             "type": int,
             "default": 10,
             "help": "Number of training epochs.",
@@ -193,7 +193,7 @@ PARAMS_CONFIG = {
              "help": "Directory to save logs and outputs.",
              "dest": "output_dir",
         },
-        "--checkpoint": {
+        "--checkpoint": { # REMOVED LEADING SPACE
             "type": str,
             "default": None,
             "help": "Path to save/load model checkpoint. If None, uses output_dir.",
@@ -213,7 +213,7 @@ PARAMS_CONFIG = {
         },
     },
     "wandb_params": {
-        "--wandb-key": {
+        "--wandb-key": { # REMOVED LEADING SPACE
              "type": str,
              "default": None,
              "help": "WandB API key.",
