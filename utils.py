@@ -5,7 +5,7 @@ import functools
 import os, shutil
 import torch
 import tqdm
-from custom_gates import CustomNaiveGate_Balance_SMoE, MHMoEGate
+from gates import CustomNaiveGate_Balance_SMoE, MHMoEGate
 
 
 def logging(s, log_path, print_=True, log_=True):
