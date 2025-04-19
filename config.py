@@ -213,6 +213,12 @@ PARAMS_CONFIG = {
         },
     },
     "wandb_params": {
+        "--use-wandb": {
+            "action": "store_true",
+            "default": False,
+            "help": "Enable logging to Weights & Biases.",
+            "dest": "wandb_flag",
+        },
         "--wandb-key": { # REMOVED LEADING SPACE
              "type": str,
              "default": None,
