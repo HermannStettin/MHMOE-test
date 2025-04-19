@@ -1,6 +1,11 @@
 import os
+import csv
+import json
 import torch
 from collections import Counter, OrderedDict
+import torch.nn.functional as F
+from torch.nn.utils.rnn import pad_sequence
+
 
 class Vocab(object):
     def __init__(
@@ -24,55 +29,83 @@ class Vocab(object):
         self,
         line,
         add_eos=False,
+        add_double_eos=False,
+        add_cls_token=False,
+        add_s=False,
+        add_cls_token_last=False,
     ):
         line = line.strip()
+        # convert to lower case
         if self.lower_case:
             line = line.lower()
 
+        # empty delimiter '' will evaluate False
         if self.delimiter == "":
-            symbols = list(line)
+            symbols = line
         else:
             symbols = line.split(self.delimiter)
 
-        if add_eos:
+        if add_cls_token:
+            return ["<CLS>"] + symbols + ["<S>"]
+        elif add_cls_token_last:
+            return ["<S>"] + symbols + ["<CLS>"]
+        elif add_double_eos:  # lm1b
+            return ["<S>"] + symbols + ["<S>"]
+        elif add_eos:
             return symbols + ["<eos>"]
+        elif add_s:
+            return symbols + ["<S>"]
         else:
             return symbols
 
     def count_file(self, path, verbose=False, add_eos=False):
-        if verbose: print(f"Counting file {path} ...")
+        if verbose:
+            print("counting file {} ...".format(path))
         assert os.path.exists(path)
+
         sents = []
         with open(path, "r", encoding="utf-8") as f:
             for idx, line in enumerate(f):
+                if verbose and idx > 0 and idx % 500000 == 0:
+                    print("    line {}".format(idx))
                 symbols = self.tokenize(line, add_eos=add_eos)
                 self.counter.update(symbols)
                 sents.append(symbols)
+
         return sents
 
     def count_sents(self, sents, verbose=False):
-        if verbose: print(f"Counting {len(sents)} sentences ...")
+        """
+        sents : a list of sentences, each a list of tokenized symbols
+        """
+        if verbose:
+            print("counting {} sents ...".format(len(sents)))
         for idx, symbols in enumerate(sents):
+            if verbose and idx > 0 and idx % 500000 == 0:
+                print("    line {}".format(idx))
             self.counter.update(symbols)
 
     def _build_from_file(self, vocab_file):
         self.idx2sym = []
         self.sym2idx = OrderedDict()
-        print(f"Building vocab from file: {vocab_file}")
+
         with open(vocab_file, "r", encoding="utf-8") as f:
             for line in f:
                 symb = line.strip().split()[0]
                 self.add_symbol(symb)
-        if "<UNK>" not in self.sym2idx:
-             print("Warning: <UNK> token not found in vocab file. Adding it.")
-             self.add_special("<UNK>")
         self.unk_idx = self.sym2idx["<UNK>"]
 
     def build_vocab(self):
         if self.vocab_file:
+            print("building vocab from {}".format(self.vocab_file))
             self._build_from_file(self.vocab_file)
+            print("final vocab size {}".format(len(self)))
         else:
-            print(f"Building vocab with min_freq={self.min_freq}, max_size={self.max_size}")
+            print(
+                "building vocab with min_freq={}, max_size={}".format(
+                    self.min_freq, self.max_size
+                )
+            )
             self.idx2sym = []
             self.sym2idx = OrderedDict()
 
@@ -80,43 +113,56 @@ class Vocab(object):
                 self.add_special(sym)
 
             for sym, cnt in self.counter.most_common(self.max_size):
-                if cnt < self.min_freq: break
+                if cnt < self.min_freq:
+                    break
                 self.add_symbol(sym)
 
-            if "<UNK>" not in self.sym2idx and "<UNK>" not in self.special:
-                self.add_special("<UNK>")
+            print(
+                "final vocab size {} from {} unique tokens".format(
+                    len(self), len(self.counter)
+                )
+            )
 
-        if hasattr(self, "unk_idx"):
-            print(f"Final vocab size {len(self)} (UNK index: {self.unk_idx})")
-        else:
-            print(f"Final vocab size {len(self)}")
-
-
-    def encode_file(self, path, ordered=False, verbose=False, add_eos=True):
-        if verbose: print(f"Encoding file {path} ...")
+    def encode_file(
+        self, path, ordered=False, verbose=False, add_eos=True, add_double_eos=False
+    ):
+        if verbose:
+            print("encoding file {} ...".format(path))
         assert os.path.exists(path)
         encoded = []
         with open(path, "r", encoding="utf-8") as f:
             for idx, line in enumerate(f):
-                symbols = self.tokenize(line, add_eos=add_eos)
+                if verbose and idx > 0 and idx % 500000 == 0:
+                    print("    line {}".format(idx))
+                symbols = self.tokenize(
+                    line, add_eos=add_eos, add_double_eos=add_double_eos
+                )
                 encoded.append(self.convert_to_tensor(symbols))
+
         if ordered:
             encoded = torch.cat(encoded)
+
         return encoded
 
     def encode_sents(self, sents, ordered=False, verbose=False):
-        if verbose: print(f"Encoding {len(sents)} sentences ...")
-        encoded = [self.convert_to_tensor(symbols) for symbols in sents]
+        if verbose:
+            print("encoding {} sents ...".format(len(sents)))
+        encoded = []
+        for idx, symbols in enumerate(sents):
+            if verbose and idx > 0 and idx % 500000 == 0:
+                print("    line {}".format(idx))
+            encoded.append(self.convert_to_tensor(symbols))
+
         if ordered:
             encoded = torch.cat(encoded)
+
         return encoded
 
     def add_special(self, sym):
         if sym not in self.sym2idx:
             self.idx2sym.append(sym)
             self.sym2idx[sym] = len(self.idx2sym) - 1
-            attr_name = "{}_idx".format(sym.strip("<>").lower().replace("-", "_"))
-            setattr(self, attr_name, self.sym2idx[sym])
+            setattr(self, "{}_idx".format(sym.strip("<>")), self.sym2idx[sym])
 
     def add_symbol(self, sym):
         if sym not in self.sym2idx:
@@ -124,16 +170,18 @@ class Vocab(object):
             self.sym2idx[sym] = len(self.idx2sym) - 1
 
     def get_sym(self, idx):
-        if not 0 <= idx < len(self):
-             print(f"Warning: Index {idx} out of vocab range [0, {len(self)-1}]. Returning <UNK>.")
-             return self.idx2sym[self.unk_idx] if hasattr(self, "unk_idx") else "<???>"
+        assert 0 <= idx < len(self), "Index {} out of range".format(idx)
         return self.idx2sym[idx]
 
     def get_idx(self, sym):
-        return self.sym2idx.get(sym, self.unk_idx if hasattr(self, "unk_idx") else -1)
+        if sym in self.sym2idx:
+            return self.sym2idx[sym]
+        else:
+            assert hasattr(self, "unk_idx")
+            return self.sym2idx.get(sym, self.unk_idx)
 
     def get_symbols(self, indices):
-        return [self.get_sym(idx.item() if torch.is_tensor(idx) else idx) for idx in indices]
+        return [self.get_sym(idx) for idx in indices]
 
     def get_indices(self, symbols):
         return [self.get_idx(sym) for sym in symbols]
@@ -141,9 +189,13 @@ class Vocab(object):
     def convert_to_tensor(self, symbols):
         return torch.LongTensor(self.get_indices(symbols))
 
-    def convert_to_sent(self, indices, exclude_idx=None):
-        if exclude_idx is None: exclude_idx = []
-        return " ".join([self.get_sym(idx) for idx in indices if idx not in exclude_idx])
+    def convert_to_sent(self, indices, exclude=None):
+        if exclude is None:
+            return " ".join([self.get_sym(idx) for idx in indices])
+        else:
+            return " ".join(
+                [self.get_sym(idx) for idx in indices if idx not in exclude]
+            )
 
     def __len__(self):
         return len(self.idx2sym)

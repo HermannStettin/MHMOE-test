@@ -8,7 +8,7 @@ from custom_functions import prepare_forward, ensure_comm
 from custom_functions import MOEScatter, MOEGather
 from custom_functions import AllGather, Slice
 
-from fastermoe.config import         switch_from_env
+from fastermoe.config import switch_from_env
 
 
 def mark_module_parallel_comm(module, comm):
