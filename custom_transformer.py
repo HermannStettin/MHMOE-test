@@ -46,14 +46,17 @@ class FMoETransformerMLP(FMoE):
         num_experts,
         moe_top_k,
         mhmoe_num_heads,
+        world_size,
         expert_dp_comm = "none",
         expert_rank = 0,
     ):
         super().__init__(
-            hidden_size = hidden_size // mhmoe_num_heads,
+            num_expert = num_experts,
+            d_model = hidden_size // mhmoe_num_heads,
             inner_hidden_size = inner_hidden_size // mhmoe_num_heads,
             moe_top_k = moe_top_k,
             gate = gate,
+            world_size=world_size,
         )
         self.experts = _Expert(
             hidden_size = hidden_size // mhmoe_num_heads,

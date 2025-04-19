@@ -138,6 +138,7 @@ class MomentumLayer(FMoETransformerMLP):
         mhmoe_num_heads,
         gamma,
         mu,
+        world_size,
     ):
         activation = nn.Sequential(nn.ReLU(), nn.Dropout(dropout))
         super().__init__(   
@@ -148,6 +149,7 @@ class MomentumLayer(FMoETransformerMLP):
             num_experts = num_experts,
             moe_top_k = moe_top_k,
             mhmoe_num_heads = mhmoe_num_heads,
+            world_size = world_size,
         )
         self.gamma = gamma
         self.mu = mu
@@ -184,6 +186,7 @@ class TransformerSeqLayer(nn.Module):
         mu,
         beta1,
         beta2,
+        world_size,
         s,
         g,
         f,
@@ -221,6 +224,7 @@ class TransformerSeqLayer(nn.Module):
                 mhmoe_num_heads = mhmoe_num_heads,
                 gamma = gamma2,
                 mu = mu,
+                world_size = world_size,
             )
             if g == "m"
             else
@@ -281,6 +285,7 @@ class TransformerSeq(nn.Module):
         mu,
         beta1,
         beta2,
+        world_size,
         **kwargs,
     ):
         super().__init__()
@@ -309,6 +314,7 @@ class TransformerSeq(nn.Module):
                 mu = mu,
                 beta1 = beta1,
                 beta2 = beta2,
+                world_size = world_size,
                 s = self.arch[2 * i],
                 g = self.arch[2 * i + 1],
                 f = None,

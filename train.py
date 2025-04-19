@@ -47,6 +47,7 @@ def launch(
     set_up_env(env_params)
     device = env_params["device"]
     distributed = env_params["distributed"]
+    world_size = env_params.get("world_size", 1)
     resume = trainer_params["resume"]
 
     if distributed == False or env_params["rank"] == 0:
@@ -63,9 +64,11 @@ def launch(
         device=device,
     )
 
+
     # MODEL
     model = TransformerSeq(
         vocab_size=data_params["vocab_size"],
+        world_size = world_size,
         **model_params,
     )
     print(model)
