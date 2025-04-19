@@ -57,7 +57,7 @@ PARAMS_CONFIG = {
             "help": "Number of self-attention heads.",
             "dest": "num_heads",
         },
-        "mhmoe_num_heads": {
+        "--mhmoe_num_heads": {
              "type": int,
              "default": 1, # Default to 1 (no multi-head MoE)
              "help": "Number of heads for splitting/merging in MH-MoE layers.",
@@ -204,6 +204,12 @@ PARAMS_CONFIG = {
             "default": False,
             "help": "Resume training from the checkpoint if it exists.",
             "dest": "resume",
+        },
+        "--full-eval-mode": {
+            "action": "store_true",
+            "default": False,
+            "help": "Run in full evaluation mode.",
+            "dest": "full_eval_mode",
         },
     },
     "wandb_params": {

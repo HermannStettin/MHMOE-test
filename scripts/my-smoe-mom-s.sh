@@ -10,6 +10,8 @@ args="
 --inner-hidden-size 128 \
 --num_heads 8 \
 --mhmoe_num_heads 1 \
+--num-experts 16 \
+--moe_top_k 2 \
 --block-sz 256 \
 --attn-span 256 \
 --dropout 0.7 \
