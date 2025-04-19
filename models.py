@@ -189,7 +189,7 @@ class TransformerSeqLayer(nn.Module):
         f,
         layerth,
     ):
-        super().__init__(self)
+        super().__init__()
         if gate_name == "smoe":
             gate = CustomNaiveGate_Balance_SMoE # from SwitchTransformer paper
         elif gate_name == "mhmoe":
