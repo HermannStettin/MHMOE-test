@@ -55,7 +55,7 @@ PARAMS_CONFIG = {
             "type": int,
             "default": 8,
             "help": "Number of self-attention heads.",
-            "dest": "num_attn_heads",
+            "dest": "num_heads",
         },
         "--num-heads": {
              "type": int,
