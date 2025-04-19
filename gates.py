@@ -77,7 +77,7 @@ class CustomNaiveGate_Balance_SMoE(BaseGate):
             return gate_top_k_idx, gate_score, gate
         return gate_top_k_idx, gate_score
 
-class MHMoEGate(nn.Module):
+class MHMoEGate(BaseGate):
     def __init__(self, d_model, num_expert, world_size, top_k = 2):
         super().__init__(num_expert, world_size)
         self.gate = nn.Linear(d_model, self.tot_expert)
