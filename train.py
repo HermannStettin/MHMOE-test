@@ -209,7 +209,7 @@ def launch(
                 scheduler,
                 val_data,
                 nb_batches_per_iter,
-                model_params["block_size"],
+                trainer_params["block_size"],
                 True,
                 data_pos[1],
                 hid_cache[1],
