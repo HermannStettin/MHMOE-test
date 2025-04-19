@@ -135,7 +135,7 @@ def launch(
                 optimizer,
                 scheduler,
                 val_data,
-                model_params["block_size"],
+                trainer_params["block_size"],
                 model_params["hidden_size"],
             )
             loss_test = full_eval(
@@ -143,7 +143,7 @@ def launch(
                 optimizer,
                 scheduler,
                 test_data,
-                model_params["block_size"],
+                trainer_params["block_size"],
                 model_params["hidden_size"],
             )
             if distributed:
@@ -193,7 +193,7 @@ def launch(
             scheduler,
             train_data,
             nb_batches_per_iter,
-            model_params["block_size"],
+            trainer_params["block_size"],
             False,
             data_pos[0],
             hid_cache[0],
