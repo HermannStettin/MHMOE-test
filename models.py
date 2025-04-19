@@ -312,7 +312,7 @@ class TransformerSeq(nn.Module):
                 s = self.arch[2 * i],
                 g = self.arch[2 * i + 1],
                 f = None,
-                layeth = i
+                layerth = i
             )
             for i in range(num_layers)
         )
