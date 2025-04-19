@@ -36,7 +36,7 @@ class SeqAttention(nn.Module):
         attn_span,
         dropout
     ):
-        super().__init__(self)
+        super().__init__()
         self.hidden_size = hidden_size
         self.attn_span = attn_span
         self.dropout = nn.Dropout(dropout)
@@ -71,7 +71,7 @@ class MultiHeadSeqAttention(nn.Module):
         dropout,
         attn_span,
     ):
-        super().__init__(self)
+        super().__init__()
         assert hidden_size % num_heads == 0
         self.num_heads = num_heads
         self.head_dim = hidden_size // num_heads
@@ -115,7 +115,7 @@ class MultiHeadSeqAttention(nn.Module):
 
 class FeedForwardLayer(nn.Module):
     def __init__(self, hidden_size, inner_hidden_size, dropout, **kargs):
-        nn.Module.__init__(self)
+        nn.Module.__init__()
         self.fc1 = nn.Linear(hidden_size, inner_hidden_size)
         self.fc2 = nn.Linear(inner_hidden_size, hidden_size)
         self.dropout = nn.Dropout(dropout)
