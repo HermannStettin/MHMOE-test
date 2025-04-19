@@ -283,7 +283,7 @@ class TransformerSeq(nn.Module):
         beta2,
         **kwargs,
     ):
-        super().__init__(self)
+        super().__init__()
         self.inp_embed = nn.Embedding(vocab_size, hidden_size)
         self.out_embed = nn.Linear(hidden_size, vocab_size)
 
