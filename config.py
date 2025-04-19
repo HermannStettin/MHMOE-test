@@ -51,13 +51,13 @@ PARAMS_CONFIG = {
             "help": "Number of Transformer layers.",
             "dest": "num_layers",
         },
-        "--nheads": {
+        "--num_heads": {
             "type": int,
             "default": 8,
             "help": "Number of self-attention heads.",
             "dest": "num_heads",
         },
-        "--num-heads": {
+        "mhmoe_num_heads": {
              "type": int,
              "default": 1, # Default to 1 (no multi-head MoE)
              "help": "Number of heads for splitting/merging in MH-MoE layers.",

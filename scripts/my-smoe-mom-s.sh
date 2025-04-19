@@ -8,7 +8,8 @@ args="
 --num-layers 3 \
 --hidden-size 128 \
 --inner-hidden-size 128 \
---nheads 8 \
+--num_heads 8 \
+--mhmoe_num_heads 1 \
 --block-sz 256 \
 --attn-span 256 \
 --dropout 0.7 \
