@@ -36,7 +36,7 @@ def launch(
 ):
     # Initialize wandb only on the master process (rank 0)
     distributed = env_params["distributed"]
-    is_master = not distributed or env_params["rank"] == 0
+    is_master = not distributed or env_params.get("local_rank", 0) == 0
     
     wandb_flag = wandb_params.get("wandb_flag", False)
     if wandb_flag and is_master:
