@@ -34,8 +34,12 @@ def launch(
     trainer_params,
     wandb_params,
 ):
+    # Initialize wandb only on the master process (rank 0)
+    distributed = env_params["distributed"]
+    is_master = not distributed or env_params["rank"] == 0
+    
     wandb_flag = wandb_params.get("wandb_flag", False)
-    if wandb_flag:
+    if wandb_flag and is_master:
         wandb.init(project=wandb_params["project_name"])
         wandb.run.name = wandb_params.get("run_name", None)
         wandb.config.update(model_params)
@@ -46,11 +50,10 @@ def launch(
     # ENVIRONMENT (device, distributed, etc.)
     set_up_env(env_params)
     device = env_params["device"]
-    distributed = env_params["distributed"]
     world_size = env_params.get("world_size", 1)
     resume = trainer_params["resume"]
 
-    if distributed == False or env_params["rank"] == 0:
+    if is_master:
         print("data_params:\t", data_params)
         print("model_params:\t", model_params)
         print("optim_params:\t", optim_params)
@@ -71,7 +74,8 @@ def launch(
         world_size = world_size,
         **model_params,
     )
-    print(model)
+    if is_master:
+        print(model)
     
     if distributed:
         local_rank = env_params["local_rank"]
@@ -91,26 +95,30 @@ def launch(
         model=model, optim_params=optim_params
     )
 
-    # create logger
-    logger = Logger()
-    fold_name = trainer_params["checkpoint_path"].split("/")[-1].split(".")[0]
-    folder_path = "/".join(trainer_params["checkpoint_path"].split("/")[:-1])
-    logging = create_exp_dir(f"{folder_path}/experiments/{fold_name}")
-    
-    # log parameters
-    logging(f"Training Parameters:\n {trainer_params}")
-    logging(f"Models Parameters:\n {model_params}")
-    
-    # logging time
-    current_time = datetime.datetime.now()
-    logging(str(current_time))
-    
-    # log model
-    logging(str(model))
-    logging(f"Total of Parameters: {sum(p.numel() for p in model.parameters())}")
-    logging(
-        f"Total of Trainable Parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad)}"
-    )
+    # create logger - only on master process
+    if is_master:
+        logger = Logger()
+        fold_name = trainer_params["checkpoint_path"].split("/")[-1].split(".")[0]
+        folder_path = "/".join(trainer_params["checkpoint_path"].split("/")[:-1])
+        logging = create_exp_dir(f"{folder_path}/experiments/{fold_name}")
+        
+        # log parameters
+        logging(f"Training Parameters:\n {trainer_params}")
+        logging(f"Models Parameters:\n {model_params}")
+        
+        # logging time
+        current_time = datetime.datetime.now()
+        logging(str(current_time))
+        
+        # log model
+        logging(str(model))
+        logging(f"Total of Parameters: {sum(p.numel() for p in model.parameters())}")
+        logging(
+            f"Total of Trainable Parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad)}"
+        )
+    else:
+        logger = None
+        logging = lambda x: None  # Dummy logging function for non-master processes
     
     # resume training from last checkpoint if exists
     iter_init = load_checkpoint(
@@ -150,20 +158,21 @@ def launch(
                 # collect results into rank0
                 stats = torch.tensor([loss_val, loss_test]).to(device)
                 torch.distributed.reduce(stats, 0)
-                if env_params["rank"] == 0:
+                if is_master:
                     loss_val = stats[0] / env_params["world_size"]
                     loss_test = stats[1] / env_params["world_size"]
                 else:
                     return
 
-            if ("enwik8" in data_params["data_path"]) or (
-                "text8" in data_params["data_path"]
-            ):
-                logging("Val: {:.3f} BPC".format(loss_val / math.log(2)))
-                logging("Test: {:.3f} BPC".format(loss_test / math.log(2)))
-            else:
-                logging("Val: {:.3f} PPL".format(math.exp(loss_val)))
-                logging("Test: {:.3f} PPL".format(math.exp(loss_test)))
+            if is_master:
+                if ("enwik8" in data_params["data_path"]) or (
+                    "text8" in data_params["data_path"]
+                ):
+                    logging("Val: {:.3f} BPC".format(loss_val / math.log(2)))
+                    logging("Test: {:.3f} BPC".format(loss_test / math.log(2)))
+                else:
+                    logging("Val: {:.3f} PPL".format(math.exp(loss_val)))
+                    logging("Test: {:.3f} PPL".format(math.exp(loss_test)))
         return
 
     # position of current batch
@@ -221,52 +230,64 @@ def launch(
             # collect results into rank0
             stats = torch.tensor([loss_train, loss_val]).to(device)
             torch.distributed.reduce(stats, 0)
-            if env_params["rank"] == 0:
+            if is_master:
                 loss_train = stats[0] / env_params["world_size"]
                 loss_val = stats[1] / env_params["world_size"]
             else:
                 continue
                 
-        logging(f"=================== EPOCHS {iter_no} ======================")
-        if ("enwik8" in data_params["data_path"]) or (
-            "text8" in data_params["data_path"]
-        ):
-            msg_result = "Epochs: {} | loss_train: {:.3f} ~ {:.3f} BPC | loss_val: {:.3f} ~ {:.3f} BPC | elapsed: {:.1f}".format(
-                iter_no,
-                loss_train,
-                float(loss_train / math.log(2)),
-                loss_val,
-                float(loss_val / math.log(2)),
-                elapsed,
-            )
-        else:
-            msg_result = "Epochs: {} | loss_train: {:.3f} ~ {:.3f} PPL | loss_val: {:.3f} ~ {:.3f} PPL | elapsed: {:.1f}".format(
-                iter_no,
-                loss_train,
-                float(math.exp(loss_train)),
-                loss_val,
-                float(math.exp(loss_val)),
-                elapsed,
-            )
-        logging(msg_result)
-        if wandb_flag:
-            wandb.log({'train_ppl': float(math.exp(loss_train)), 'Epoch': iter_no, 'valid_ppl': float(math.exp(loss_val))})
-        logger.log_iter(iter_no, nb_batches_per_iter, loss_train, loss_val, elapsed, model)
-        
-        # Save the model if the validation loss is the best we've seen so far.
-        if (best_val_loss is None) or loss_val < best_val_loss:
-            best_val_loss = loss_val
-            save_checkpoint(
-                trainer_params["checkpoint_path"],
-                iter_no,
-                model,
-                optimizer,
-                scheduler,
-                logger,
-            )
+        if is_master:
+            logging(f"=================== EPOCHS {iter_no} ======================")
+            if ("enwik8" in data_params["data_path"]) or (
+                "text8" in data_params["data_path"]
+            ):
+                msg_result = "Epochs: {} | loss_train: {:.3f} ~ {:.3f} BPC | loss_val: {:.3f} ~ {:.3f} BPC | elapsed: {:.1f}".format(
+                    iter_no,
+                    loss_train,
+                    float(loss_train / math.log(2)),
+                    loss_val,
+                    float(loss_val / math.log(2)),
+                    elapsed,
+                )
+            else:
+                msg_result = "Epochs: {} | loss_train: {:.3f} ~ {:.3f} PPL | loss_val: {:.3f} ~ {:.3f} PPL | elapsed: {:.1f}".format(
+                    iter_no,
+                    loss_train,
+                    float(math.exp(loss_train)),
+                    loss_val,
+                    float(math.exp(loss_val)),
+                    elapsed,
+                )
+            logging(msg_result)
+            
+            # Log to wandb only from the master process
+            if wandb_flag:
+                wandb.log({
+                    'train_ppl': float(math.exp(loss_train)), 
+                    'Epoch': iter_no, 
+                    'valid_ppl': float(math.exp(loss_val)),
+                    'train_loss': loss_train,
+                    'valid_loss': loss_val,
+                    'elapsed_ms': elapsed
+                })
+            
+            logger.log_iter(iter_no, nb_batches_per_iter, loss_train, loss_val, elapsed, model)
+            
+            # Save the model if the validation loss is the best we've seen so far.
+            if (best_val_loss is None) or loss_val < best_val_loss:
+                best_val_loss = loss_val
+                save_checkpoint(
+                    trainer_params["checkpoint_path"],
+                    iter_no,
+                    model,
+                    optimizer,
+                    scheduler,
+                    logger,
+                )
     
-    end_time = time.time()
-    logging(f"Training time total: {(end_time - start_time)/3600} h")
+    if is_master:
+        end_time = time.time()
+        logging(f"Training time total: {(end_time - start_time)/3600} h")
 
 
 if __name__ == "__main__":
