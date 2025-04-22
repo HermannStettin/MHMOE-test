@@ -192,7 +192,8 @@ def launch(
     ]
 
     nb_batches_per_iter = trainer_params["nb_batches_per_iter"]
-    for iter_no in range(iter_init, trainer_params.get("epochs", 5)):
+    num_epochs = trainer_params.get("epochs", 5)
+    for iter_no in range(iter_init, num_epochs):
         # time storing
         t_sta = time.time()
         loss_train, data_pos[0], hid_cache[0] = train_iteration(
