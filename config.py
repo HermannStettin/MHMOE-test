@@ -63,6 +63,12 @@ PARAMS_CONFIG = {
              "help": "Number of heads for splitting/merging in MH-MoE layers.",
              "dest": "mhmoe_num_heads",
         },
+        "--mhmoe_beta": {
+            "type": float,
+            "default": 1.0,
+            "help": "Scaling factor (beta) for the inner hidden size of MH-MoE experts to control parameter count.",
+            "dest": "mhmoe_beta",
+        },
         "--attn-span": {
             "type": int,
             "default": 256,

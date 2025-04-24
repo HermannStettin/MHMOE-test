@@ -136,6 +136,7 @@ class MomentumLayer(FMoETransformerMLP):
         num_experts,
         moe_top_k,
         mhmoe_num_heads,
+        mhmoe_beta,
         gamma,
         mu,
         world_size,
@@ -149,6 +150,7 @@ class MomentumLayer(FMoETransformerMLP):
             num_experts = num_experts,
             moe_top_k = moe_top_k,
             mhmoe_num_heads = mhmoe_num_heads,
+            mhmoe_beta = mhmoe_beta,
             world_size = world_size,
         )
         self.gamma = gamma
@@ -182,6 +184,7 @@ class TransformerSeqLayer(nn.Module):
         num_experts,
         moe_top_k,
         mhmoe_num_heads,
+        mhmoe_beta,
         gamma1,
         gamma2,
         mu,
@@ -223,6 +226,7 @@ class TransformerSeqLayer(nn.Module):
                 num_experts = num_experts,
                 moe_top_k = moe_top_k,
                 mhmoe_num_heads = mhmoe_num_heads,
+                mhmoe_beta = mhmoe_beta,
                 gamma = gamma2,
                 mu = mu,
                 world_size = world_size,
@@ -281,13 +285,13 @@ class TransformerSeq(nn.Module):
         num_experts,
         moe_top_k,
         mhmoe_num_heads,
+        mhmoe_beta,
         gamma1,
         gamma2,
         mu,
         beta1,
         beta2,
         world_size,
-        **kwargs,
     ):
         super().__init__()
         self.inp_embed = nn.Embedding(vocab_size, hidden_size)
@@ -310,6 +314,7 @@ class TransformerSeq(nn.Module):
                 num_experts = num_experts,
                 moe_top_k = moe_top_k,
                 mhmoe_num_heads = mhmoe_num_heads,
+                mhmoe_beta = mhmoe_beta,
                 gamma1 = gamma1,
                 gamma2 = gamma2,
                 mu = mu,
