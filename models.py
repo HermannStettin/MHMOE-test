@@ -292,6 +292,7 @@ class TransformerSeq(nn.Module):
         beta1,
         beta2,
         world_size,
+        **kwargs,
     ):
         super().__init__()
         self.inp_embed = nn.Embedding(vocab_size, hidden_size)
