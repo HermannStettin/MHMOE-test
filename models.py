@@ -318,7 +318,7 @@ class AdEMAMixLayer(FMoETransformerMLP):
             
         output = inp - update
         
-        return output, (m1_new, m2_new, v_new, step_count)
+        return output, (m1_new, v_new, m2_new, step_count)
 
 class TransformerSeqLayer(nn.Module):
     def __init__(
