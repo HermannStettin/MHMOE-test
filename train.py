@@ -43,6 +43,7 @@ def launch(
         wandb.init(project=wandb_params["project_name"])
         wandb.run.name = wandb_params.get("run_name", None)
         wandb.config.update(model_params)
+        wandb.config.update(optim_params)
     
     # global val
     best_val_loss = None
