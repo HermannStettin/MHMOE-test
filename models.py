@@ -481,6 +481,7 @@ class TransformerSeq(nn.Module):
         t_warmup,
         # weight_decay,
         world_size,
+        **kwargs,
     ):
         super().__init__()
         self.inp_embed = nn.Embedding(vocab_size, hidden_size)
