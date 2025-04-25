@@ -105,12 +105,6 @@ PARAMS_CONFIG = {
             "help": "Coefficient for MoE load balancing loss (0 to disable).",
             "dest": "load_balance",
         },
-        "--mom-type": {
-            "type": str,
-            "default": "heavy-ball",
-            "help": "Type of momentum for MoE layers ('heavy-ball', 'adam')",
-            "dest": "mom_type",
-        },
         "--mu": { # MomentumSMoE mu
             "type": float,
             "default": 0.9,
@@ -140,6 +134,24 @@ PARAMS_CONFIG = {
             "default": 0.999,
             "help": "Adam optimizer beta2.",
             "dest": "beta2",
+        },
+        "--alpha": {
+            "type": float,
+            "default": 5.0,
+            "help": "Mixing coefficient for AdEMAMix (weight of slow momentum).",
+            "dest": "alpha",
+        },
+        "--beta3": {
+            "type": float,
+            "default": 0.9999,
+            "help": "Slow momentum decay factor for AdEMAMix.",
+            "dest": "beta3",
+        },
+        "--t-warmup": {
+            "type": int,
+            "default": 0,
+            "help": "Warmup period for AdEMAMix schedulers (0 means equal to total epochs).",
+            "dest": "t_warmup",
         },
     },
     "optim_params": {

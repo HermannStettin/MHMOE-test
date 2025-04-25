@@ -212,9 +212,9 @@ class AdamLayer(FMoETransformerMLP):
         moe_out = self.dropout(moe_out)
         
         if self.layerth == 0:
-            momentum = self.mu * momentum[2] + self.gamma2 * moe_out
             p = momentum[0]
             v = momentum[1]
+            momentum = self.mu * momentum[2] + self.gamma2 * moe_out
 
             p = self.beta1 * p + (1 - self.beta1) * moe_out
             v = self.beta2 * v + (1 - self.beta2) * (moe_out ** 2)
@@ -228,6 +228,97 @@ class AdamLayer(FMoETransformerMLP):
             output = inp - momentum
         
         return output, (p, v, momentum)
+
+def linear_warmup_scheduler(step, alpha_end, alpha_start=0, warmup=1):
+    if step < warmup:
+        a = step / float(warmup)
+        return (1.0-a) * alpha_start + a * alpha_end
+    return alpha_end
+
+def linear_hl_warmup_scheduler(step, beta_end, beta_start=0, warmup=1):
+
+    def f(beta, eps=1e-8):
+        return math.log(0.5)/math.log(beta+eps)-1
+
+    def f_inv(t):
+        return math.pow(0.5, 1/(t+1))
+
+    if step < warmup:
+        a = step / float(warmup)
+        return f_inv((1.0-a) * f(beta_start) + a * f(beta_end))
+    return beta_end
+
+class AdEMAMixLayer(FMoETransformerMLP):
+    def __init__(
+        self,
+        hidden_size,
+        inner_hidden_size,
+        dropout,
+        gate,
+        num_experts,
+        moe_top_k,
+        mhmoe_num_heads,
+        mhmoe_beta,
+        alpha,
+        beta1,
+        beta2,
+        beta3,
+        t_warmup,
+        world_size,
+        # weight_decay,
+    ):
+        activation = nn.Sequential(nn.ReLU(), nn.Dropout(dropout))
+        super().__init__(
+            hidden_size = hidden_size,
+            inner_hidden_size = inner_hidden_size,
+            activation = activation,
+            gate = gate,
+            num_experts = num_experts,
+            moe_top_k = moe_top_k,
+            mhmoe_num_heads = mhmoe_num_heads,
+            mhmoe_beta = mhmoe_beta,
+            world_size = world_size,
+        )
+        self.alpha = alpha
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.beta3 = beta3
+        self.t_warmup = t_warmup
+        # self.weight_decay = weight_decay
+
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, inp, momentum):
+        m1, v, m2, step_count = momentum
+        step_count += 1
+        step = step_count.item()
+
+        alpha_t = linear_warmup_scheduler(step, alpha_end = self.alpha, alpha_start = 0, warmup = self.t_warmup)
+        beta3_t = linear_hl_warmup_scheduler(step, self.beta3, beta_start = self.beta1, warmup = self.t_warmup)
+
+        moe_out = super().forward(inp)
+        moe_out = self.dropout(moe_out)
+
+        m1_new = self.beta1 * m1 + (1 - self.beta1) * moe_out
+        v_new = self.beta2 * v + (1 - self.beta2) * (moe_out ** 2)
+        m2_new = beta3_t * m2 + (1 - beta3_t) * moe_out
+        
+        bias_correction1 = 1.0 - self.beta1 ** step
+        bias_correction2 = 1.0 - self.beta2 ** step
+        m1_hat = m1_new / bias_correction1
+        v_hat = v_new / bias_correction2
+        
+        combined_m = m1_hat + alpha_t * m2_new
+        
+        denom = torch.sqrt(v_hat + 1e-8)
+        update = combined_m / denom
+        
+        # if self.weight_decay > 0:
+        #     update = update + self.weight_decay * inp
+            
+        output = inp - update
+        
+        return output, (m1_new, m2_new, v_new, step_count)
 
 class TransformerSeqLayer(nn.Module):
     def __init__(
@@ -245,8 +336,12 @@ class TransformerSeqLayer(nn.Module):
         gamma1,
         gamma2,
         mu,
+        alpha,
         beta1,
         beta2,
+        beta3,
+        t_warmup,
+        # weight_decay,
         world_size,
         s,
         g,
@@ -273,7 +368,7 @@ class TransformerSeqLayer(nn.Module):
             else None
         )
         
-        self.use_smoe = g == "m" or g == "a"
+        self.use_smoe = g in ["m", "a", "e"]
         self.smoe = (
             MomentumLayer(
                 hidden_size = hidden_size,
@@ -308,6 +403,25 @@ class TransformerSeqLayer(nn.Module):
                 layerth = layerth,
             )
             if g == "a"
+            else
+            AdEMAMixLayer(
+                hidden_size = hidden_size,
+                inner_hidden_size = inner_hidden_size,
+                dropout = dropout,
+                gate = gate,
+                num_experts = num_experts,
+                moe_top_k = moe_top_k,
+                mhmoe_num_heads = mhmoe_num_heads,
+                mhmoe_beta = mhmoe_beta,
+                alpha = alpha,
+                beta1 = beta1,
+                beta2 = beta2,
+                beta3 = beta3,
+                t_warmup = t_warmup,
+                world_size = world_size,
+                # weight_decay = weight_decay,
+            )
+            if g == "e"
             else None
         )
 
@@ -360,8 +474,12 @@ class TransformerSeq(nn.Module):
         gamma1,
         gamma2,
         mu,
+        alpha,
         beta1,
         beta2,
+        beta3,
+        t_warmup,
+        # weight_decay,
         world_size,
     ):
         super().__init__()
@@ -389,8 +507,12 @@ class TransformerSeq(nn.Module):
                 gamma1 = gamma1,
                 gamma2 = gamma2,
                 mu = mu,
+                alpha = alpha,
                 beta1 = beta1,
                 beta2 = beta2,
+                beta3 = beta3,
+                t_warmup = t_warmup,
+                # weight_decay = weight_decay,
                 world_size = world_size,
                 s = self.arch[2 * i],
                 g = self.arch[2 * i + 1],
@@ -404,7 +526,14 @@ class TransformerSeq(nn.Module):
         block_size = x.size(1) # B x M
         h = self.inp_embed(x) # B x M x H
         h_cache_next = []
-        if "a" in self.arch:
+        if "e" in self.arch:
+            momentum = (
+                torch.zeros_like(h),
+                torch.zeros_like(h),
+                torch.zeros_like(h),
+                torch.zeros(1, device = h.device, dtype = torch.long)
+            )
+        elif "a" in self.arch:
             momentum = (
                 torch.zeros_like(h),
                 torch.zeros_like(h),
