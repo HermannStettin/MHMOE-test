@@ -58,14 +58,14 @@ class FMoETransformerMLP(FMoE):
             gate = gate,
             world_size=world_size,
         )
-        if mhmoe_num_heads > 1:
-            expert_inner_size = int(inner_hidden_size * mhmoe_beta) // mhmoe_num_heads
-        else:
-            expert_inner_size = inner_hidden_size // mhmoe_num_heads
+        # if mhmoe_num_heads > 1:
+        #     expert_inner_size = int(inner_hidden_size * mhmoe_beta) // mhmoe_num_heads
+        # else:
+        #     expert_inner_size = inner_hidden_size // mhmoe_num_heads
 
         self.experts = _Expert(
             hidden_size = hidden_size // mhmoe_num_heads,
-            inner_hidden_size = expert_inner_size,
+            inner_hidden_size = inner_hidden_size,
             activation = activation,
             num_experts = num_experts,
             rank = expert_rank,
