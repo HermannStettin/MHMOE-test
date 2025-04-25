@@ -223,7 +223,7 @@ class AdamLayer(FMoETransformerMLP):
         else:
             p = momentum[0]
             v = momentum[1]
-            momentum = self.mu * momentum[2] + self.gamma * moe_out
+            momentum = self.mu * momentum[2] + self.gamma2 * moe_out
             # output = self.layer_norm(inp - momentum)
             output = inp - momentum
         
