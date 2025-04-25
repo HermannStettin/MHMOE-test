@@ -168,9 +168,66 @@ class MomentumLayer(FMoETransformerMLP):
         output = inp - momentum
         return output, momentum
 
-class AdamLayer:
-    def __init__():
-        NotImplementedError("Under development")
+class AdamLayer(FMoETransformerMLP):
+    def __init__(
+        self,
+        hidden_size,
+        inner_hidden_size,
+        dropout,
+        gate,
+        num_experts,
+        moe_top_k,
+        mhmoe_num_heads,
+        mhmoe_beta,
+        gamma1,
+        gamma2,
+        mu,
+        world_size,
+        beta1,
+        beta2,
+        layerth,
+    ):
+        activation = nn.Sequential(nn.ReLU(), nn.Dropout(dropout))
+        super().__init__(
+            hidden_size = hidden_size,
+            inner_hidden_size = inner_hidden_size,
+            activation = activation,
+            gate = gate,
+            num_experts = num_experts,
+            moe_top_k = moe_top_k,
+            mhmoe_num_heads = mhmoe_num_heads,
+            mhmoe_beta = mhmoe_beta,
+            world_size = world_size,
+        )
+        self.gamma1 = gamma1
+        self.gamma2 = gamma2
+        self.mu = mu
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.layeth = layerth
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, inp, momentum):
+        moe_out = super().forward(inp)
+        moe_out = self.dropout(moe_out)
+        
+        if self.layerth == 0:
+            momentum = self.mu * momentum[2] + self.gamma2 * moe_out
+            p = momentum[0]
+            v = momentum[1]
+
+            p = self.beta1 * p + (1 - self.beta1) * moe_out
+            v = self.beta2 * v + (1 - self.beta2) * (moe_out ** 2)
+            adam = (self.gamma1 / torch.sqrt(v + 1e-8)) * p + inp
+            output = inp - adam  
+        else:
+            p = momentum[0]
+            v = momentum[1]
+            momentum = self.mu * momentum[2] + self.gamma * moe_out
+            # output = self.layer_norm(inp - momentum)
+            output = inp - momentum
+        
+        return output, (p, v, momentum)
 
 class TransformerSeqLayer(nn.Module):
     def __init__(
@@ -234,7 +291,21 @@ class TransformerSeqLayer(nn.Module):
             if g == "m"
             else
             AdamLayer(
-
+                hidden_size = hidden_size,
+                inner_hidden_size = inner_hidden_size,
+                dropout = dropout,
+                gate = gate,
+                num_experts = num_experts,
+                moe_top_k = moe_top_k,
+                mhmoe_num_heads = mhmoe_num_heads,
+                mhmoe_beta = mhmoe_beta,
+                gamma1 = gamma1,
+                gamma2 = gamma2,
+                mu = mu,
+                world_size = world_size,
+                beta1 = beta1,
+                beta2 = beta2,
+                layerth = layerth,
             )
             if g == "a"
             else None
