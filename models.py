@@ -204,7 +204,7 @@ class AdamLayer(FMoETransformerMLP):
         self.mu = mu
         self.beta1 = beta1
         self.beta2 = beta2
-        self.layeth = layerth
+        self.layerth = layerth
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, inp, momentum):
