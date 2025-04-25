@@ -45,7 +45,7 @@ PARAMS_CONFIG = {
             "help": "Inner hidden size of MoE/FF layers.",
             "dest": "inner_hidden_size",
         },
-         "--num-layers": { # REMOVED LEADING SPACE
+         "--num-layers": {
             "type": int,
             "default": 8,
             "help": "Number of Transformer layers.",
@@ -150,7 +150,7 @@ PARAMS_CONFIG = {
         "--t-warmup": {
             "type": int,
             "default": 0,
-            "help": "Warmup period for AdEMAMix schedulers (0 means equal to total epochs).",
+            "help": "Warmup period for AdEMAMix schedulers.",
             "dest": "t_warmup",
         },
     },
@@ -175,7 +175,7 @@ PARAMS_CONFIG = {
         },
     },
     "trainer_params": {
-         "--epochs": { # REMOVED LEADING SPACE
+         "--epochs": {
             "type": int,
             "default": 10,
             "help": "Number of training epochs.",
