@@ -65,7 +65,7 @@ class FMoETransformerMLP(FMoE):
 
         self.experts = _Expert(
             hidden_size = hidden_size // mhmoe_num_heads,
-            inner_hidden_size = inner_hidden_size,
+            inner_hidden_size = int(inner_hidden_size * mhmoe_beta),
             activation = activation,
             num_experts = num_experts,
             rank = expert_rank,
