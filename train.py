@@ -110,12 +110,14 @@ def launch(
         # logging time
         current_time = datetime.datetime.now()
         logging(str(current_time))
+
+        original_model = model.module
         
         # log model
-        logging(str(model))
-        logging(f"Total of Parameters: {sum(p.numel() for p in model.parameters())}")
+        logging(str(original_model))
+        logging(f"Total of Parameters: {sum(p.numel() for p in original_model.parameters())}")
         logging(
-            f"Total of Trainable Parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad)}"
+            f"Total of Trainable Parameters: {sum(p.numel() for p in original_model.parameters() if p.requires_grad)}"
         )
     else:
         logger = None
