@@ -40,7 +40,9 @@ def launch(
     
     wandb_flag = wandb_params.get("wandb_flag", False)
     if wandb_flag and is_master:
-        wandb.init(project=wandb_params["project_name"])
+        run_id = wandb_params.get("run_id", None)
+
+        wandb.init(project=wandb_params["project_name"], id = run_id, resume = "allow")
         wandb.run.name = wandb_params.get("run_name", None)
         wandb.config.update(data_params)
         wandb.config.update(model_params)

@@ -255,5 +255,11 @@ PARAMS_CONFIG = {
             "help": "WandB run name.",
             "dest": "run_name",
         },
+        "--run-id": {
+            "type": str,
+            "default": None,
+            "help": "WandB run id for resuming existing run",
+            "dest": "run_id",
+        }
     },
 }
