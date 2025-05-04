@@ -173,8 +173,10 @@ def _load_checkpoint(checkpoint_path, model, optimizer, scheduler, logger, distr
     return iter_init
 
 
-def load_checkpoint(checkpoint_path, model, optimizer, scheduler, logger, distributed, resume, wandb_flag):
+def load_checkpoint(checkpoint_path, model, optimizer, scheduler, logger, distributed, resume, wandb_params):
     if resume:
+        wandb_flag = wandb_params.get("wandb_flag", False)
+        run_name = wandb_params.get("run_name", None)
         if os.path.exists(checkpoint_path):
             return _load_checkpoint(
                 checkpoint_path=checkpoint_path,
@@ -186,7 +188,7 @@ def load_checkpoint(checkpoint_path, model, optimizer, scheduler, logger, distri
             )
         elif wandb_flag:
             print("Local checkpoint not found, attempting to download from wandb")
-            artifact = wandb.use_artifact(f"{wandb.run.name}:latest", type = "model")
+            artifact = wandb.use_artifact(f"{run_name}:latest", type = "model")
             
             artifact_dir = artifact.download(root = os.path.dirname(checkpoint_path))
             checkpoint_path = os.path.join(artifact_dir, os.path.basename(checkpoint_path))

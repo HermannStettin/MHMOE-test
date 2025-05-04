@@ -136,7 +136,7 @@ def launch(
         logger,
         distributed,
         resume,
-        wandb_flag
+        wandb_params
     )
     
     # calculate time
