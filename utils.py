@@ -6,6 +6,7 @@ import os, shutil
 import torch
 import tqdm
 from gates import CustomNaiveGate_Balance_SMoE, MHMoEGate
+import wandb
 
 
 def logging(s, log_path, print_=True, log_=True):
@@ -172,21 +173,38 @@ def _load_checkpoint(checkpoint_path, model, optimizer, scheduler, logger, distr
     return iter_init
 
 
-def load_checkpoint(checkpoint_path, model, optimizer, scheduler, logger, distributed, resume):
-    if resume and os.path.exists(checkpoint_path):
-        return _load_checkpoint(
-            checkpoint_path=checkpoint_path,
-            model=model,
-            optimizer=optimizer,
-            scheduler=scheduler,
-            logger=logger,
-            distributed=distributed,
-        )
+def load_checkpoint(checkpoint_path, model, optimizer, scheduler, logger, distributed, resume, wandb_flag):
+    if resume:
+        if os.path.exists(checkpoint_path):
+            return _load_checkpoint(
+                checkpoint_path=checkpoint_path,
+                model=model,
+                optimizer=optimizer,
+                scheduler=scheduler,
+                logger=logger,
+                distributed=distributed,
+            )
+        elif wandb_flag:
+            print("Local checkpoint not found, attempting to download from wandb")
+            artifact = wandb.use_artifact(f"{wandb.run.name}:latest", type = "model")
+            
+            artifact_dir = artifact.download(root = os.path.dirname(checkpoint_path))
+            checkpoint_path = os.path.join(artifact_dir, os.path.basename(checkpoint_path))
+            return _load_checkpoint(
+                checkpoint_path=checkpoint_path,
+                model=model,
+                optimizer=optimizer,
+                scheduler=scheduler,
+                logger=logger,
+                distributed=distributed,
+            )
+        else:
+            print("Failed to load checkpoint")
     return 0
 
 
 def save_checkpoint(
-    checkpoint_path, nb_batches_per_iter, model, optimizer, scheduler, logger
+    checkpoint_path, nb_batches_per_iter, model, optimizer, scheduler, wandb_flag
 ):
     if checkpoint_path:
         checkpoint_state = {
@@ -197,6 +215,15 @@ def save_checkpoint(
         if scheduler is not None:
             checkpoint_state["scheduler_iter"] = scheduler.last_epoch
         torch.save(checkpoint_state, checkpoint_path)
+
+        if wandb_flag:
+            model_artifact = wandb.Artifact(
+                name = wandb.run.name,
+                type = "model"
+            )
+
+            model_artifact.add_file(checkpoint_path)
+            wandb.log_artifact(model_artifact)
 
 
 ##############################################################################

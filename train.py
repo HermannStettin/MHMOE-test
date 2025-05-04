@@ -42,8 +42,10 @@ def launch(
     if wandb_flag and is_master:
         wandb.init(project=wandb_params["project_name"])
         wandb.run.name = wandb_params.get("run_name", None)
+        wandb.config.update(data_params)
         wandb.config.update(model_params)
         wandb.config.update(optim_params)
+        wandb.config.update(trainer_params)
     
     # global val
     best_val_loss = None
@@ -132,6 +134,7 @@ def launch(
         logger,
         distributed,
         resume,
+        wandb_flag
     )
     
     # calculate time
@@ -286,7 +289,7 @@ def launch(
                     model,
                     optimizer,
                     scheduler,
-                    logger,
+                    wandb_flag,
                 )
     
     if is_master:
