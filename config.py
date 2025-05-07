@@ -11,7 +11,7 @@ PARAMS_CONFIG = {
             "help": "Enable distributed training.",
             "dest": "distributed",
         },
-        "--local_rank": {
+        "--local-rank": {
             "type": int,
             "default": int(get_env_var('LOCAL_RANK', 0)),
             "help": "Local rank for distributed training.",
@@ -51,19 +51,19 @@ PARAMS_CONFIG = {
             "help": "Number of Transformer layers.",
             "dest": "num_layers",
         },
-        "--num_heads": {
+        "--num-heads": {
             "type": int,
             "default": 8,
             "help": "Number of self-attention heads.",
             "dest": "num_heads",
         },
-        "--mhmoe_num_heads": {
+        "--mhmoe-num-heads": {
              "type": int,
              "default": 1, # Default to 1 (no multi-head MoE)
              "help": "Number of heads for splitting/merging in MH-MoE layers.",
              "dest": "mhmoe_num_heads",
         },
-        "--mhmoe_beta": {
+        "--mhmoe-beta": {
             "type": float,
             "default": 1.0,
             "help": "Scaling factor (beta) for the inner hidden size of MH-MoE experts to control parameter count.",
@@ -87,19 +87,19 @@ PARAMS_CONFIG = {
             "help": "Number of experts per MoE layer.",
             "dest": "num_experts",
         },
-        "--moe_top_k": {
+        "--moe-top-k": {
             "type": int,
             "default": 2,
             "help": "Number of experts to route to per token/sub-token.",
             "dest": "moe_top_k",
         },
-        "--gate_name": {
+        "--gate-name": {
             "type": str,
             "default": "smoe",
             "help": "Type of MoE gate: 'smoe' or 'mhmoe'.",
             "dest": "gate_name",
         },
-         "--load_balance": {
+         "--load-balance": {
             "type": float,
             "default": 0.01,
             "help": "Coefficient for MoE load balancing loss (0 to disable).",
