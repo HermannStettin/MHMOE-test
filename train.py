@@ -43,7 +43,7 @@ def launch(
         run_id = wandb_params.get("run_id", None)
 
         wandb.init(project=wandb_params["project_name"], id = run_id, resume = "allow")
-        wandb.run.name = wandb_params.get("run_name", None)
+        wandb.run.name = wandb_params["run_name"] if wandb_params["run_name"] else wandb.run.name
         wandb.config.update(data_params)
         wandb.config.update(model_params)
         wandb.config.update(optim_params)
