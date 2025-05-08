@@ -245,7 +245,7 @@ PARAMS_CONFIG = {
         },
         "--project-name": {
             "type": str,
-            "default": "momentum_mhmoe",
+            "default": None,
             "help": "WandB project name.",
             "dest": "project_name",
         },
