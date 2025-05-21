@@ -260,6 +260,12 @@ PARAMS_CONFIG = {
             "default": None,
             "help": "WandB run id for resuming existing run",
             "dest": "run_id",
+        },
+        "--wandb-checkpoints": {
+            "action": "store_true",
+            "default": False,
+            "help": "Enable checkpoint saving to wandb",
+            "dest": "wandb_checkpoints",
         }
     },
 }
