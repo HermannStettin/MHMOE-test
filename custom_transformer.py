@@ -91,7 +91,6 @@ class FMoETransformerMLP(FMoE):
             inp = inp.reshape(N * self.mhmoe_num_heads, dim // self.mhmoe_num_heads).contiguous()
             
             out = super().forward(inp)
-            out += inp
 
             out = out.reshape(N, self.mhmoe_num_heads, dim // self.mhmoe_num_heads).contiguous()
             out = out.reshape(N, self.hidden_size).contiguous()
