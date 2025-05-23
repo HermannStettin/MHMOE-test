@@ -156,7 +156,7 @@ class MomentumLayer(FMoETransformerMLP):
         self.gamma = gamma
         self.mu = mu
         self.dropout = nn.Dropout(dropout)
-        self.layer_norm = nn.LayerNorm(hidden_size)
+        # self.layer_norm = nn.LayerNorm(hidden_size)
 
 
     def forward(self, inp, momentum):
@@ -164,8 +164,8 @@ class MomentumLayer(FMoETransformerMLP):
         moe_out = self.dropout(moe_out)
 
         momentum = self.mu * momentum + self.gamma * moe_out
-        output = self.layer_norm(inp - momentum)
-        # output = inp - momentum
+        # output = self.layer_norm(inp - momentum)
+        output = inp - momentum
         return output, momentum
 
 class AdamLayer(FMoETransformerMLP):
