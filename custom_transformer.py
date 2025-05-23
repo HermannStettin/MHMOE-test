@@ -42,11 +42,14 @@ class FMoETransformerMLP(FMoE):
         hidden_size,
         inner_hidden_size,
         activation,
+        dropout,
         gate,
         num_experts,
         moe_top_k,
         mhmoe_num_heads,
         mhmoe_beta,
+        gamma,
+        mu,
         world_size,
         expert_dp_comm = "none",
         expert_rank = 0,
@@ -78,11 +81,15 @@ class FMoETransformerMLP(FMoE):
             nn.init.xavier_uniform_(self.merge_layer.weight)
             nn.init.constant_(self.merge_layer.bias, 0.0)
         
+        self.dropout = nn.Dropout(dropout)
+        self.gamma = gamma
+        self.mu = mu
         self.mark_parallel_comm(expert_dp_comm)
     
-    def forward(self, inp): 
+    def forward(self, inp, momentum):
         original_shape = inp.shape
         reshaped_inp = inp.reshape(-1, self.hidden_size)
+        momentum = momentum.reshape(-1, self.hidden_size)
         if self.mhmoe_num_heads > 1:
             inp = self.split_layer(reshaped_inp)
             N, dim = reshaped_inp.shape
@@ -90,7 +97,11 @@ class FMoETransformerMLP(FMoE):
             inp = inp.reshape(N, self.mhmoe_num_heads, dim // self.mhmoe_num_heads).contiguous()
             inp = inp.reshape(N * self.mhmoe_num_heads, dim // self.mhmoe_num_heads).contiguous()
             
+            momentum = momentum.reshape(N, self.mhmoe_num_heads, dim // self.mhmoe_num_heads).contiguous()
+            momentum = momentum.reshape(N * self.mhmoe_num_heads, dim // self.mhmoe_num_heads).contiguous()
+
             out = super().forward(inp)
+            out = self.mu * momentum + self.gamma * out
 
             out = out.reshape(N, self.mhmoe_num_heads, dim // self.mhmoe_num_heads).contiguous()
             out = out.reshape(N, self.hidden_size).contiguous()
@@ -98,5 +109,7 @@ class FMoETransformerMLP(FMoE):
             out = out.reshape(original_shape)
         else:
             out = super().forward(reshaped_inp)
+            out = self.mu * momentum + self.gamma * out
             out = out.reshape(original_shape)
+        out = self.dropout(out)
         return out
