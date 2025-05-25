@@ -260,7 +260,7 @@ class AdEMAMixLayer(FMoETransformerMLP):
         beta3,
         t_warmup,
         world_size,
-        # weight_decay,
+        weight_decay,
     ):
         activation = nn.Sequential(nn.ReLU(), nn.Dropout(dropout))
         super().__init__(
@@ -279,7 +279,7 @@ class AdEMAMixLayer(FMoETransformerMLP):
         self.beta2 = beta2
         self.beta3 = beta3
         self.t_warmup = t_warmup
-        # self.weight_decay = weight_decay
+        self.weight_decay = weight_decay
 
         self.dropout = nn.Dropout(dropout)
 
@@ -308,8 +308,8 @@ class AdEMAMixLayer(FMoETransformerMLP):
         denom = torch.sqrt(v_hat + 1e-8)
         update = combined_m / denom
         
-        # if self.weight_decay > 0:
-        #     update = update + self.weight_decay * inp
+        if self.weight_decay > 0:
+            update = update + self.weight_decay * inp
             
         output = inp - update
         
@@ -336,7 +336,7 @@ class TransformerSeqLayer(nn.Module):
         beta2,
         beta3,
         t_warmup,
-        # weight_decay,
+        weight_decay,
         world_size,
         s,
         g,
@@ -474,7 +474,7 @@ class TransformerSeq(nn.Module):
         beta2,
         beta3,
         t_warmup,
-        # weight_decay,
+        weight_decay,
         world_size,
         **kwargs,
     ):
@@ -508,7 +508,7 @@ class TransformerSeq(nn.Module):
                 beta2 = beta2,
                 beta3 = beta3,
                 t_warmup = t_warmup,
-                # weight_decay = weight_decay,
+                weight_decay = weight_decay,
                 world_size = world_size,
                 s = self.arch[2 * i],
                 g = self.arch[2 * i + 1],
