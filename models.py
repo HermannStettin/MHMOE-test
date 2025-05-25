@@ -146,20 +146,22 @@ class MomentumLayer(FMoETransformerMLP):
             hidden_size = hidden_size,
             inner_hidden_size = inner_hidden_size,
             activation = activation,
-            dropout = dropout,
             gate = gate,
             num_experts = num_experts,
             moe_top_k = moe_top_k,
             mhmoe_num_heads = mhmoe_num_heads,
             mhmoe_beta = mhmoe_beta,
-            gamma = gamma,
-            mu = mu,
             world_size = world_size,
         )
+        self.gamma = gamma
+        self.mu = mu
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, inp, momentum):
-        momentum = super().forward(inp, momentum)
+        moe_out = super().forward(inp)
+        moe_out = self.dropout(moe_out)
 
+        momentum = self.mu * momentum + self.gamma * moe_out
         output = inp - momentum
         return output, momentum
 
