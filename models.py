@@ -416,7 +416,7 @@ class TransformerSeqLayer(nn.Module):
                 beta3 = beta3,
                 t_warmup = t_warmup,
                 world_size = world_size,
-                # weight_decay = weight_decay,
+                weight_decay = weight_decay,
             )
             if g == "e"
             else None
